@@ -1,0 +1,3103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroSense - Real-Time Gas Monitoring & Evacuation Preview</title>
+  <style>
+    :root {
+      --bg-dark: #0B1120;
+      --surface: #161F30;
+      --card-bg: #1E293B;
+      --card-elevated: #283548;
+      --border: #334155;
+      --border-subtle: #1E293B;
+      --primary: #10B981;
+      --primary-dark: #059669;
+      --primary-glow: rgba(16, 185, 129, 0.18);
+      --warning: #F59E0B;
+      --warning-glow: rgba(245, 158, 11, 0.18);
+      --danger: #EF4444;
+      --danger-glow: rgba(239, 68, 68, 0.22);
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #060911;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px 12px;
+    }
+
+    /* Smartphone Frame */
+    .phone-chassis {
+      width: 100%;
+      max-width: 412px;
+      height: 860px;
+      background-color: var(--bg-dark);
+      border-radius: 44px;
+      border: 10px solid #1E293B;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Speaker Notch */
+    .notch {
+      width: 130px;
+      height: 18px;
+      background-color: #1E293B;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      margin: 0 auto;
+      z-index: 100;
+    }
+
+    /* Top Header Bar */
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 18px;
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .badge-lan {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-main);
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--primary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-main);
+    }
+
+    .profile-switch {
+      background-color: var(--card-bg);
+      border: 1px solid var(--primary-dark);
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Scrollable App View */
+    .screen-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Status Halo Centerpiece */
+    .halo-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 0 6px;
+    }
+
+    .halo-outer {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      border: 2px solid var(--primary);
+      background-color: var(--primary-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.4s ease;
+      animation: breathe 2.4s infinite alternate ease-in-out;
+    }
+
+    @keyframes breathe {
+      0% { transform: scale(1.0); }
+      100% { transform: scale(1.05); }
+    }
+
+    .halo-inner {
+      width: 148px;
+      height: 148px;
+      border-radius: 50%;
+      background-color: var(--surface);
+      border: 1.5px solid var(--primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .peak-ppm-val {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1;
+      margin-top: 4px;
+    }
+
+    .peak-ppm-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    .halo-title {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-top: 14px;
+      color: var(--primary);
+      text-align: center;
+    }
+
+    .halo-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 2px;
+    }
+
+    /* Section Subhead */
+    .section-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.8px;
+      margin-bottom: -4px;
+    }
+
+    /* Telemetry Cards */
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .card.alert-crit {
+      border-color: var(--danger);
+      background-color: rgba(239, 68, 68, 0.08);
+    }
+
+    .card.alert-warn {
+      border-color: var(--warning);
+      background-color: rgba(245, 158, 11, 0.08);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-icon-box {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background-color: var(--card-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .card-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .card-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+    }
+
+    .reading-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .reading-ppm {
+      font-family: var(--font-mono);
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .reading-unit {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .progress-track {
+      height: 6px;
+      background-color: var(--card-elevated);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background-color: var(--primary);
+      width: 10%;
+      border-radius: 3px;
+      transition: width 0.4s ease, background-color 0.4s ease;
+    }
+
+    .card-bottom {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    /* Muster Roll Call Module */
+    .muster-box {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .muster-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .muster-btn {
+      background-color: var(--primary-dark);
+      color: var(--text-main);
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* Bottom Toolbar */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    /* Header Emergency Call Shortcut Button (Beside Gear / Mode) */
+    .call-shortcut-hdr-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background-color: var(--danger);
+      color: #FFFFFF;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .call-shortcut-hdr-btn:hover {
+      transform: scale(1.06);
+    }
+
+    /* Rising Threshold Advisory Warning Ribbon (Top Placement) */
+    .threshold-warning-ribbon {
+      background-color: rgba(245, 158, 11, 0.12);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+      padding: 10px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      animation: ribbonSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 50;
+    }
+
+    @keyframes ribbonSlideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .warn-ribbon-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background-color: rgba(245, 158, 11, 0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .warn-ribbon-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .warn-ribbon-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .warn-ribbon-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #F59E0B;
+      letter-spacing: 0.3px;
+    }
+
+    .warn-ribbon-badge {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #FCD34D;
+      background-color: rgba(245, 158, 11, 0.22);
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .warn-ribbon-sub {
+      font-size: 11px;
+      font-weight: 500;
+      color: #CBD5E1;
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
+    .warn-ribbon-dismiss {
+      background: none;
+      border: none;
+      color: #94A3B8;
+      font-size: 12px;
+      cursor: pointer;
+      padding: 4px;
+      margin-top: -2px;
+      margin-right: -4px;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .warn-ribbon-dismiss:hover {
+      color: #FFFFFF;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Header Action Dial Button */
+    .dial-shortcut-hdr-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background-color: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: var(--primary);
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    .dial-shortcut-hdr-btn:hover {
+      transform: scale(1.06);
+      background-color: rgba(16, 185, 129, 0.25);
+    }
+
+    /* Household Wi-Fi Safety Group & Occupant Roster */
+    .roster-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .roster-card.active-emergency {
+      border-color: rgba(245, 158, 11, 0.4);
+      background-color: rgba(245, 158, 11, 0.04);
+    }
+
+    .roster-hdr-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .roster-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .roster-icon-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background-color: var(--card-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .roster-status-pill {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background-color: var(--card-elevated);
+      color: var(--text-muted);
+    }
+
+    .roster-net-banner {
+      background-color: #0F172A;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 10px;
+      padding: 9px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .roster-net-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 14px;
+      background-color: rgba(16, 185, 129, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+
+    .roster-net-info {
+      flex: 1;
+    }
+
+    .roster-net-name-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .roster-net-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .roster-net-pill {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 700;
+      color: var(--primary);
+      background-color: rgba(16, 185, 129, 0.15);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .roster-net-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .roster-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .roster-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background-color: #0F172A;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+
+    .roster-item-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .roster-item-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 13px;
+      background-color: var(--card-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+    }
+
+    .roster-item-icon.safe {
+      background-color: rgba(16, 185, 129, 0.15);
+      color: var(--primary);
+    }
+
+    .roster-item-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .roster-you-badge {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 800;
+      color: var(--primary);
+      background-color: rgba(16, 185, 129, 0.15);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    .roster-status-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      user-select: none;
+    }
+
+    .roster-status-chip.chip-safe {
+      background-color: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: var(--primary);
+    }
+
+    .roster-status-chip.chip-pending {
+      background-color: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--warning);
+    }
+
+    .roster-status-chip.chip-standby {
+      background-color: var(--card-elevated);
+      color: var(--text-muted);
+    }
+
+    .roster-self-btn {
+      width: 100%;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 10px;
+      padding: 9px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .roster-sim-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background-color: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .roster-sim-btn:hover {
+      background-color: rgba(16, 185, 129, 0.16);
+    }
+
+    /* ========================================================
+       ACTION DIAL & ROTARY DIAL MICRO INTERACTION STYLES
+       ======================================================== */
+    .dial-modal-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(11, 17, 32, 0.82);
+      z-index: 400;
+      align-items: flex-end;
+      backdrop-filter: blur(4px);
+    }
+
+    .dial-modal-overlay.active {
+      display: flex;
+    }
+
+    .dial-sheet {
+      width: 100%;
+      max-height: 90%;
+      background-color: #0F172A;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideUp 0.25s ease-out;
+    }
+
+    .dial-tabs {
+      display: flex;
+      background-color: #1E293B;
+      padding: 6px 12px;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .dial-tab-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background-color: transparent;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .dial-tab-btn.active {
+      background-color: #0F172A;
+      border-color: rgba(16, 185, 129, 0.4);
+      color: var(--primary);
+    }
+
+    .dial-tab-content {
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Prototype 1: Semicircular Action Arc (Jeffin Sam Model) */
+    .arc-stage {
+      position: relative;
+      width: 330px;
+      height: 200px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      margin: 10px auto 4px;
+    }
+
+    .arc-tier2-wrap {
+      position: absolute;
+      bottom: 60px;
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+      animation: fanOut 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes fanOut {
+      from { transform: translateY(16px) scale(0.9); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .arc-wedge-t2 {
+      background: linear-gradient(180deg, #334155, #1E293B);
+      border: 1px solid #475569;
+      color: #FFFFFF;
+      padding: 8px 12px;
+      border-radius: 12px 12px 6px 6px;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      transition: all 0.15s ease;
+    }
+
+    .arc-wedge-t2:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .arc-tier1-container {
+      position: relative;
+      width: 290px;
+      height: 145px;
+      border-top-left-radius: 145px;
+      border-top-right-radius: 145px;
+      background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+      border: 2px solid #334155;
+      border-bottom: none;
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      padding-top: 14px;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+    }
+
+    .arc-wedge-btn {
+      background: transparent;
+      border: none;
+      color: #94A3B8;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: color 0.15s ease;
+    }
+
+    .arc-wedge-btn.active {
+      color: var(--primary);
+    }
+
+    .arc-center-core {
+      position: absolute;
+      bottom: 0;
+      width: 150px;
+      height: 60px;
+      border-top-left-radius: 75px;
+      border-top-right-radius: 75px;
+      background-color: #020617;
+      border: 2px solid var(--primary);
+      border-bottom: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      cursor: pointer;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+    }
+
+    /* Prototype 2: Sleek Rotary Dial (Emani.Ui Model) */
+    .rotary-stage {
+      position: relative;
+      width: 270px;
+      height: 270px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px auto;
+    }
+
+    .rotary-orbit-ring {
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      border-radius: 120px;
+      border: 1px dashed rgba(255, 255, 255, 0.14);
+      pointer-events: none;
+    }
+
+    .rotary-node-btn {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border-radius: 22px;
+      background-color: #1E293B;
+      border: 1.5px solid #334155;
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+    }
+
+    .rotary-node-btn.active {
+      background-color: rgba(16, 185, 129, 0.2);
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: scale(1.15);
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+    }
+
+    .rotary-knob-base {
+      position: relative;
+      width: 136px;
+      height: 136px;
+      border-radius: 68px;
+      background: radial-gradient(circle at 35% 35%, #1E293B 0%, #0B1120 70%, #030712 100%);
+      border: 3px solid #334155;
+      box-shadow: inset 0 2px 8px rgba(255,255,255,0.1), 0 8px 24px rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .rotary-indicator-notch {
+      position: absolute;
+      top: 6px;
+      width: 4px;
+      height: 14px;
+      border-radius: 2px;
+      background-color: var(--primary);
+      box-shadow: 0 0 8px var(--primary);
+    }
+
+    .rotary-knob-inner {
+      width: 86px;
+      height: 86px;
+      border-radius: 43px;
+      background: #0F172A;
+      border: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 4px;
+    }
+
+    .rotary-selected-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: #FFFFFF;
+      line-height: 1.2;
+    }
+
+    .rotary-selected-sub {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      color: var(--primary);
+      margin-top: 2px;
+    }
+
+    /* Floating Hotlines Modal / Bottom Sheet */
+    .hotline-sheet-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(11, 17, 32, 0.75);
+      z-index: 300;
+      align-items: flex-end;
+      backdrop-filter: blur(2px);
+    }
+
+    .hotline-sheet-overlay.active {
+      display: flex;
+    }
+
+    .hotline-sheet {
+      width: 100%;
+      max-height: 85%;
+      background-color: #1E293B;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideUp 0.25s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      margin: 10px auto 4px;
+    }
+
+    .sheet-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .sheet-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sheet-icon-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background-color: rgba(239, 68, 68, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sheet-close-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 14px;
+      background-color: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sheet-speed-row {
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px 6px;
+    }
+
+    .speed-btn-911 {
+      flex: 1;
+      background: rgba(239, 68, 68, 0.12);
+      color: #F8FAFC;
+      border: 1px solid rgba(248, 113, 113, 0.32);
+      box-shadow: none;
+      padding: 9px 12px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+
+    .speed-btn-911:hover {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: rgba(248, 113, 113, 0.5);
+    }
+
+    .speed-btn-143 {
+      flex: 1;
+      background: rgba(225, 29, 72, 0.12);
+      color: #F8FAFC;
+      border: 1px solid rgba(251, 113, 133, 0.32);
+      box-shadow: none;
+      padding: 9px 12px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+
+    .speed-btn-143:hover {
+      background: rgba(225, 29, 72, 0.18);
+      border-color: rgba(251, 113, 133, 0.5);
+    }
+
+    .sheet-filter-row {
+      display: flex;
+      gap: 6px;
+      padding: 6px 16px 8px;
+      overflow-x: auto;
+    }
+
+    .sheet-filter-btn {
+      background-color: #334155;
+      color: #F8FAFC;
+      border: 1px solid #475569;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .sheet-filter-btn.active {
+      background-color: #10B981;
+      color: #FFFFFF;
+      border-color: #10B981;
+      font-weight: 800;
+    }
+
+    .sheet-list-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sheet-contact-card {
+      background-color: #0F172A;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .btn-action {
+      background-color: var(--card-bg);
+      border: 1px solid var(--primary-dark);
+      color: var(--primary);
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-action:hover {
+      background-color: var(--card-elevated);
+    }
+
+    .btn-action.active-sim {
+      border-color: var(--danger);
+      color: var(--danger);
+      background-color: rgba(239, 68, 68, 0.12);
+    }
+
+    /* Emergency Evacuation Overlay Modal */
+    .emergency-modal {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--bg-dark);
+      z-index: 500;
+      padding: 24px 20px;
+      flex-direction: column;
+      overflow-y: auto;
+      gap: 14px;
+      animation: alertFlash 1s infinite alternate;
+    }
+
+    @keyframes alertFlash {
+      0% { background-color: #120606; }
+      100% { background-color: #260A0A; }
+    }
+
+    .emergency-modal.active {
+      display: flex;
+    }
+
+    .crit-banner {
+      background-color: rgba(239, 68, 68, 0.16);
+      border: 2px solid var(--danger);
+      border-radius: 16px;
+      padding: 18px 12px;
+      text-align: center;
+    }
+
+    .crit-headline {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--danger);
+      letter-spacing: 0.5px;
+      margin-top: 6px;
+    }
+
+    .crit-zone {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    .rule-item {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .rule-icon-box {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background-color: rgba(239, 68, 68, 0.16);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .rule-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .rule-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-top: 2px;
+    }
+
+    .call-btn {
+      background-color: var(--danger);
+      color: var(--text-main);
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .snooze-btn {
+      background-color: var(--card-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    svg {
+      display: block;
+      flex-shrink: 0;
+    }
+    /* ========================================================
+       SETTINGS & CONTROLS SHEET + TEXT ENLARGER STYLES
+       ======================================================== */
+    .settings-sheet-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 650;
+      justify-content: flex-end;
+    }
+
+    .settings-sheet-overlay.active {
+      display: flex;
+    }
+
+    .settings-sheet {
+      width: 100%;
+      max-height: 88%;
+      background-color: #1E293B;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideUp 0.25s ease-out;
+    }
+
+    .settings-scroll-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .settings-section-card {
+      background-color: #0F172A;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .settings-section-hdr {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .settings-icon-wrap {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .settings-hdr-btn {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .settings-hdr-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Text Enlarger Preset Pills */
+    .scale-pills-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .scale-pill-btn {
+      flex: 1;
+      background-color: #1E293B;
+      border: 1px solid #334155;
+      color: #94A3B8;
+      border-radius: 10px;
+      padding: 10px 4px;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+
+    .scale-pill-btn:hover {
+      border-color: var(--primary);
+      color: #FFFFFF;
+    }
+
+    .scale-pill-btn.active {
+      background-color: rgba(16, 185, 129, 0.15);
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 800;
+    }
+
+    .scale-preview-box {
+      background-color: #1E293B;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    /* Collapsible Directory Styles */
+    .collapsible-dir-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .collapsible-dir-header:hover {
+      opacity: 0.95;
+    }
+
+    .dir-count-pill {
+      background-color: rgba(239, 68, 68, 0.14);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #EF4444;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+
+    .dir-expand-prompt {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #1E293B;
+      border: 1px solid #334155;
+      color: var(--primary);
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
+    .dir-items-container {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .dir-items-container.expanded {
+      display: flex;
+    }
+
+    /* Dynamic font-scale classes on phone-chassis & overall settings */
+    /* LARGE SCALE (115%) */
+    .phone-chassis.font-scale-115 .card-title,
+    .phone-chassis.font-scale-115 .halo-title {
+      font-size: 16px !important;
+    }
+    .phone-chassis.font-scale-115 .section-meta {
+      font-size: 13.5px !important;
+    }
+    .phone-chassis.font-scale-115 .card-sub,
+    .phone-chassis.font-scale-115 .halo-subtitle {
+      font-size: 12px !important;
+    }
+    .phone-chassis.font-scale-115 .reading-unit {
+      font-size: 12.5px !important;
+    }
+    .phone-chassis.font-scale-115 .card-bottom {
+      font-size: 11.5px !important;
+    }
+    .phone-chassis.font-scale-115 .settings-section-card div[style*="font-size: 13.5px"],
+    .phone-chassis.font-scale-115 .settings-section-card div[style*="font-size: 13px"],
+    .phone-chassis.font-scale-115 .settings-section-hdr div[style*="font-size: 13.5px"],
+    .phone-chassis.font-scale-115 .settings-sheet .sheet-header-row div[style*="font-size: 15px"],
+    .phone-chassis.font-scale-115 .roster-card div[style*="font-size: 13.5px"] {
+      font-size: 14.5px !important;
+    }
+    .phone-chassis.font-scale-115 .settings-section-card div[style*="font-size: 11px"],
+    .phone-chassis.font-scale-115 .settings-section-card div[style*="font-size: 10.5px"],
+    .phone-chassis.font-scale-115 .settings-section-hdr div[style*="font-size: 11px"],
+    .phone-chassis.font-scale-115 .settings-sheet .sheet-header-row div[style*="font-size: 11px"],
+    .phone-chassis.font-scale-115 .roster-card div[style*="font-size: 11px"],
+    .phone-chassis.font-scale-115 .roster-net-name,
+    .phone-chassis.font-scale-115 .roster-item-name {
+      font-size: 12px !important;
+    }
+    .phone-chassis.font-scale-115 .settings-section-card button:not(.scale-pill-btn),
+    .phone-chassis.font-scale-115 .dir-expand-prompt span {
+      font-size: 12px !important;
+    }
+    .phone-chassis.font-scale-115 .settings-section-card input {
+      font-size: 12px !important;
+    }
+    .phone-chassis.font-scale-115 .scale-pills-row .scale-pill-btn {
+      font-size: 11.5px !important;
+      padding: 10px 4px !important;
+      white-space: nowrap !important;
+    }
+    /* Dashboard Elements Scaling (115%) */
+    .phone-chassis.font-scale-115 .badge-lan span,
+    .phone-chassis.font-scale-115 .pill span,
+    .phone-chassis.font-scale-115 .dial-shortcut-hdr-btn span,
+    .phone-chassis.font-scale-115 .call-shortcut-hdr-btn span,
+    .phone-chassis.font-scale-115 .profile-switch {
+      font-size: 11.5px !important;
+    }
+    .phone-chassis.font-scale-115 .peak-ppm-val {
+      font-size: 38px !important;
+    }
+    .phone-chassis.font-scale-115 .peak-ppm-label {
+      font-size: 10.5px !important;
+    }
+    .phone-chassis.font-scale-115 #rosterCardTitle {
+      font-size: 14.5px !important;
+    }
+    .phone-chassis.font-scale-115 #rosterCardSub {
+      font-size: 11.5px !important;
+    }
+    .phone-chassis.font-scale-115 #rosterStatusBadge,
+    .phone-chassis.font-scale-115 .roster-net-pill,
+    .phone-chassis.font-scale-115 .roster-you-badge,
+    .phone-chassis.font-scale-115 .roster-status-chip {
+      font-size: 10.5px !important;
+    }
+    .phone-chassis.font-scale-115 .roster-net-sub,
+    .phone-chassis.font-scale-115 .roster-item-sub {
+      font-size: 11px !important;
+    }
+    .phone-chassis.font-scale-115 #rosterSelfBtn span,
+    .phone-chassis.font-scale-115 .roster-sim-btn span,
+    .phone-chassis.font-scale-115 .btn-action {
+      font-size: 12px !important;
+    }
+    .phone-chassis.font-scale-115 .reading-ppm {
+      font-size: 30px !important;
+    }
+    .phone-chassis.font-scale-115 .card-badge {
+      font-size: 10.5px !important;
+    }
+    .phone-chassis.font-scale-115 .warn-ribbon-title {
+      font-size: 13px !important;
+    }
+    .phone-chassis.font-scale-115 .warn-ribbon-badge {
+      font-size: 11px !important;
+    }
+    .phone-chassis.font-scale-115 .warn-ribbon-sub {
+      font-size: 11.5px !important;
+    }
+
+    /* EXTRA LARGE SCALE (130%) - BALANCED ACCESSIBILITY & LAYOUT INTEGRITY */
+    .phone-chassis.font-scale-130 .card-title,
+    .phone-chassis.font-scale-130 .halo-title {
+      font-size: 17.5px !important;
+      line-height: 1.25 !important;
+    }
+    .phone-chassis.font-scale-130 .section-meta {
+      font-size: 14.5px !important;
+    }
+    .phone-chassis.font-scale-130 .card-sub,
+    .phone-chassis.font-scale-130 .halo-subtitle {
+      font-size: 12.5px !important;
+      line-height: 1.35 !important;
+    }
+    .phone-chassis.font-scale-130 .reading-unit {
+      font-size: 13.5px !important;
+    }
+    .phone-chassis.font-scale-130 .card-bottom {
+      font-size: 12px !important;
+    }
+    .phone-chassis.font-scale-130 .settings-section-card div[style*="font-size: 13.5px"],
+    .phone-chassis.font-scale-130 .settings-section-card div[style*="font-size: 13px"],
+    .phone-chassis.font-scale-130 .settings-section-hdr div[style*="font-size: 13.5px"],
+    .phone-chassis.font-scale-130 .settings-sheet .sheet-header-row div[style*="font-size: 15px"],
+    .phone-chassis.font-scale-130 .roster-card div[style*="font-size: 13.5px"] {
+      font-size: 15.5px !important;
+      line-height: 1.3 !important;
+    }
+    .phone-chassis.font-scale-130 .settings-section-card div[style*="font-size: 11px"],
+    .phone-chassis.font-scale-130 .settings-section-card div[style*="font-size: 10.5px"],
+    .phone-chassis.font-scale-130 .settings-section-hdr div[style*="font-size: 11px"],
+    .phone-chassis.font-scale-130 .settings-sheet .sheet-header-row div[style*="font-size: 11px"],
+    .phone-chassis.font-scale-130 .roster-card div[style*="font-size: 11px"],
+    .phone-chassis.font-scale-130 .roster-net-name,
+    .phone-chassis.font-scale-130 .roster-item-name {
+      font-size: 12.5px !important;
+      line-height: 1.4 !important;
+    }
+    .phone-chassis.font-scale-130 .settings-section-card button:not(.scale-pill-btn),
+    .phone-chassis.font-scale-130 .dir-expand-prompt span {
+      font-size: 12.5px !important;
+    }
+    .phone-chassis.font-scale-130 .settings-section-card input {
+      font-size: 12.5px !important;
+    }
+    .phone-chassis.font-scale-130 .scale-pills-row .scale-pill-btn {
+      font-size: 11.5px !important;
+      padding: 10px 4px !important;
+      white-space: nowrap !important;
+    }
+    /* Dashboard Elements Scaling (130%) */
+    .phone-chassis.font-scale-130 .badge-lan span,
+    .phone-chassis.font-scale-130 .pill span,
+    .phone-chassis.font-scale-130 .dial-shortcut-hdr-btn span,
+    .phone-chassis.font-scale-130 .call-shortcut-hdr-btn span,
+    .phone-chassis.font-scale-130 .profile-switch {
+      font-size: 12.5px !important;
+    }
+    .phone-chassis.font-scale-130 .peak-ppm-val {
+      font-size: 42px !important;
+    }
+    .phone-chassis.font-scale-130 .peak-ppm-label {
+      font-size: 11px !important;
+    }
+    .phone-chassis.font-scale-130 #rosterCardTitle {
+      font-size: 15.5px !important;
+    }
+    .phone-chassis.font-scale-130 #rosterCardSub {
+      font-size: 12px !important;
+    }
+    .phone-chassis.font-scale-130 #rosterStatusBadge,
+    .phone-chassis.font-scale-130 .roster-net-pill,
+    .phone-chassis.font-scale-130 .roster-you-badge,
+    .phone-chassis.font-scale-130 .roster-status-chip {
+      font-size: 11px !important;
+    }
+    .phone-chassis.font-scale-130 .roster-net-sub,
+    .phone-chassis.font-scale-130 .roster-item-sub {
+      font-size: 11.5px !important;
+    }
+    .phone-chassis.font-scale-130 #rosterSelfBtn span,
+    .phone-chassis.font-scale-130 .roster-sim-btn span,
+    .phone-chassis.font-scale-130 .btn-action {
+      font-size: 12.5px !important;
+    }
+    .phone-chassis.font-scale-130 .reading-ppm {
+      font-size: 34px !important;
+    }
+    .phone-chassis.font-scale-130 .card-badge {
+      font-size: 11px !important;
+    }
+    .phone-chassis.font-scale-130 .warn-ribbon-title {
+      font-size: 13.5px !important;
+    }
+    .phone-chassis.font-scale-130 .warn-ribbon-badge {
+      font-size: 11.5px !important;
+    }
+    .phone-chassis.font-scale-130 .warn-ribbon-sub {
+      font-size: 12px !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Physical Smartphone Frame -->
+  <div class="phone-chassis">
+    <div class="notch"></div>
+
+    <!-- Header Bar -->
+    <header class="header-bar">
+      <div class="badge-lan">
+        <span class="pulse-dot" id="netDot"></span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+          <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+        <span id="netLabel">LAN DIRECT</span>
+      </div>
+
+      <div class="header-right">
+        <div class="pill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="16" height="10" rx="2" ry="2"></rect>
+            <line x1="22" y1="11" x2="22" y2="13"></line>
+          </svg>
+          <span id="battLabel">98% AC</span>
+        </div>
+
+        <!-- Emergency Hotlines Shortcut (Beside Settings) -->
+        <button class="call-shortcut-hdr-btn" onclick="openHotlineSheet()" title="Emergency Hotlines">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span>SOS</span>
+        </button>
+
+        <!-- Settings Button (Beside SOS) -->
+        <button class="settings-hdr-btn" onclick="openSettingsModal()" title="Settings & Controls">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+
+        <button class="profile-switch" id="profileBtn" onclick="toggleProfile()">HOME</button>
+      </div>
+    </header>
+
+    <!-- Rising Threshold Advisory Warning Ribbon (Top Placement) -->
+    <div class="threshold-warning-ribbon" id="thresholdWarningRibbon" style="display: none;">
+      <div class="warn-ribbon-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <div class="warn-ribbon-content">
+        <div class="warn-ribbon-top">
+          <span class="warn-ribbon-title" id="warnRibbonTitle">THRESHOLD RISING: FLAMMABLE GAS</span>
+          <span class="warn-ribbon-badge" id="warnRibbonBadge">230 PPM</span>
+        </div>
+        <div class="warn-ribbon-sub" id="warnRibbonSub">
+          Caution: Level exceeded 200 PPM warning threshold. Open windows and ventilate area.
+        </div>
+      </div>
+      <button class="warn-ribbon-dismiss" onclick="dismissWarningRibbon()" title="Acknowledge warning">✕</button>
+    </div>
+
+    <!-- Main Application View -->
+    <main class="screen-content">
+      <!-- Status Halo Gauge -->
+      <section class="halo-wrapper">
+        <div class="halo-outer" id="haloOuter">
+          <div class="halo-inner" id="haloInner">
+            <svg id="haloIcon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <polyline points="9 12 11 14 15 10"></polyline>
+            </svg>
+            <div class="peak-ppm-val" id="peakPpmVal">34.2</div>
+            <div class="peak-ppm-label">PEAK PPM</div>
+          </div>
+        </div>
+        <div class="halo-title" id="haloTitle">SYSTEM NORMAL</div>
+        <div class="halo-subtitle" id="haloSub">Air composition within safe baseline</div>
+      </section>
+
+      <!-- Facility Mode: Muster Check-In (Hidden in Home Mode) -->
+      <section class="muster-box" id="facilityMusterBox" style="display: none;">
+        <div class="muster-header">
+          <span>FACILITY MUSTER ROLL CALL</span>
+          <span style="font-family: var(--font-mono); color: var(--primary);" id="musterStatus">STANDBY</span>
+        </div>
+        <button class="muster-btn" id="musterBtn" onclick="confirmMuster()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          CONFIRM SAFE AT MUSTER POINT
+        </button>
+      </section>
+
+      <!-- Universal Household Wi-Fi Safety Group & Occupant Roster -->
+      <section class="roster-card" id="rosterCard">
+        <div class="roster-hdr-row">
+          <div class="roster-title-group">
+            <div class="roster-icon-circle" id="rosterIconWrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div>
+              <div style="font-size: 13.5px; font-weight: 700; color: #FFFFFF;" id="rosterCardTitle">Family & Occupants</div>
+              <div style="font-size: 11px; color: var(--text-muted);" id="rosterCardSub">3 registered • Ready on local hub</div>
+            </div>
+          </div>
+          <div class="roster-status-pill" id="rosterStatusBadge">STANDBY</div>
+        </div>
+
+        <!-- Network Auto-Group Banner -->
+        <div class="roster-net-banner">
+          <div class="roster-net-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+              <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+              <line x1="12" y1="20" x2="12.01" y2="20"></line>
+            </svg>
+          </div>
+          <div class="roster-net-info">
+            <div class="roster-net-name-row">
+              <span class="roster-net-name" id="netGroupName">Home Wi-Fi Safety Group</span>
+              <span class="roster-net-pill">AUTO-JOINED</span>
+            </div>
+            <div class="roster-net-sub" id="netGroupSub">
+              2 phones joined on Home_WiFi • Subnet 192.168.1.0/24
+            </div>
+          </div>
+        </div>
+
+        <!-- Self One-Tap Check-In Button (Active during Emergency or drill) -->
+        <button class="roster-self-btn" id="rosterSelfBtn" style="display: none;" onclick="checkInSelf()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span>I Am Safe Outside (Check In)</span>
+        </button>
+
+        <!-- Dynamic List of Occupants -->
+        <div class="roster-list" id="rosterList"></div>
+
+        <!-- Group Simulation Trigger -->
+        <button class="roster-sim-btn" onclick="simulateNewPeerPhone()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+          <span>+ Simulate Phone Joining Wi-Fi Group</span>
+        </button>
+      </section>
+
+      <div class="section-meta">ACTIVE SENSOR TELEMETRY ARRAY</div>
+
+      <!-- MQ-2 Sensor Card -->
+      <div class="card" id="cardMq2">
+        <div class="card-top">
+          <div class="card-title-group">
+            <div class="card-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="card-title">Combustible Gas / Methane</div>
+              <div class="card-sub">MQ-2 • CH4 / LPG / Smoke</div>
+            </div>
+          </div>
+          <div class="card-badge" id="badgeMq2">NORMAL</div>
+        </div>
+        <div class="reading-row">
+          <span class="reading-ppm" id="valMq2">34.2</span>
+          <span class="reading-unit">PPM</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="fillMq2" style="width: 8%;"></div>
+        </div>
+        <div class="card-bottom">
+          <span>Threshold: 200 / 400 PPM</span>
+          <span>Density: Variable</span>
+        </div>
+      </div>
+
+      <!-- MQ-8 Sensor Card -->
+      <div class="card" id="cardMq8">
+        <div class="card-top">
+          <div class="card-title-group">
+            <div class="card-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <circle cx="19" cy="5" r="2"></circle>
+                <circle cx="5" cy="19" r="2"></circle>
+                <path d="M10.4 10.4 6.4 6.4M17.6 17.6l-4-4"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="card-title">Hydrogen Gas</div>
+              <div class="card-sub">MQ-8 • H2 (Light Plume)</div>
+            </div>
+          </div>
+          <div class="card-badge" id="badgeMq8">NORMAL</div>
+        </div>
+        <div class="reading-row">
+          <span class="reading-ppm" id="valMq8">12.0</span>
+          <span class="reading-unit">PPM</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="fillMq8" style="width: 3%;"></div>
+        </div>
+        <div class="card-bottom">
+          <span>Threshold: 400 / 800 PPM</span>
+          <span>Density: 0.07 (Buoyant)</span>
+        </div>
+      </div>
+
+      <!-- MQ-7 Sensor Card -->
+      <div class="card" id="cardMq7">
+        <div class="card-top">
+          <div class="card-title-group">
+            <div class="card-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </div>
+            <div>
+              <div class="card-title">Carbon Monoxide</div>
+              <div class="card-sub">MQ-7 • CO (Toxic / Asphyxiant)</div>
+            </div>
+          </div>
+          <div class="card-badge" id="badgeMq7">NORMAL</div>
+        </div>
+        <div class="reading-row">
+          <span class="reading-ppm" id="valMq7">5.5</span>
+          <span class="reading-unit">PPM</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="fillMq7" style="width: 11%;"></div>
+        </div>
+        <div class="card-bottom">
+          <span>Threshold: 25 / 50 PPM</span>
+          <span>Heater: SENSING (1.4V)</span>
+        </div>
+      </div>
+
+      <!-- Demonstration Toolbar -->
+      <div class="controls-grid">
+        <button class="btn-action" id="simToggleBtn" onclick="toggleSimulation()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          SIMULATE LEAK
+        </button>
+        <button class="btn-action" onclick="testVoiceDiagnostic()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          TEST ALERTS
+        </button>
+      </div>
+    </main>
+
+    <!-- Emergency Hotlines Modal Sheet (Triggered by Header SOS Button) -->
+    <div class="hotline-sheet-overlay" id="hotlineSheetModal" onclick="if(event.target===this)closeHotlineSheet()">
+      <div class="hotline-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header-row">
+          <div class="sheet-title-group">
+            <div class="sheet-icon-circle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+            </div>
+            <div>
+              <div style="font-size: 15px; font-weight: 700; color: #FFFFFF;">Emergency Hotlines</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Official verified Philippine emergency numbers</div>
+            </div>
+          </div>
+          <button class="sheet-close-btn" onclick="closeHotlineSheet()">✕</button>
+        </div>
+
+        <!-- Priority Speed-Dial Buttons (911 & 143) -->
+        <div class="sheet-speed-row">
+          <button class="speed-btn-911" onclick="triggerCall('911', 'National Emergency 911')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FCA5A5" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            <div style="text-align: left;">
+              <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: #FCA5A5;">911</div>
+              <div style="font-size: 9.5px; color: #94A3B8;">National Command</div>
+            </div>
+          </button>
+          <button class="speed-btn-143" onclick="triggerCall('143', 'Philippine Red Cross')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FDA4AF" stroke-width="2">
+              <path d="M12 2v20M2 12h20"></path>
+            </svg>
+            <div style="text-align: left;">
+              <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: #FDA4AF;">143</div>
+              <div style="font-size: 9.5px; color: #94A3B8;">Red Cross Ambulance</div>
+            </div>
+          </button>
+        </div>
+
+        <!-- Category Filters -->
+        <div class="sheet-filter-row" id="sheetFilterRow">
+          <button class="sheet-filter-btn active" onclick="setSheetFilter('ALL', this)">All Hotlines</button>
+          <button class="sheet-filter-btn" onclick="setSheetFilter('FIRE_HAZMAT', this)">Fire & Hazmat</button>
+          <button class="sheet-filter-btn" onclick="setSheetFilter('MEDICAL', this)">Ambulance</button>
+          <button class="sheet-filter-btn" onclick="setSheetFilter('POISON', this)">Poison & CO</button>
+          <button class="sheet-filter-btn" onclick="setSheetFilter('LOCAL', this)">Local & Ops</button>
+        </div>
+
+        <!-- Scrollable Contacts Directory -->
+        <div class="sheet-list-scroll" id="sheetContactsList"></div>
+      </div>
+    </div>
+
+    <!-- Full-Screen Emergency Red Alert Takeover -->
+    <div class="emergency-modal" id="emergencyModal">
+      <div class="crit-banner">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" style="margin: 0 auto;">
+          <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <div class="crit-headline">CRITICAL GAS LEAK DETECTED</div>
+        <div class="crit-zone">ZONE 1 • CEILING ENCLOSURE</div>
+      </div>
+
+      <div style="background-color: var(--card-bg); border-radius: 12px; padding: 14px; border: 1px solid var(--border);">
+        <div style="font-size: 13px; font-weight: 700; color: var(--danger);">FLAMMABLE METHANE / LPG SPIKE</div>
+        <div style="font-family: var(--font-mono); font-size: 28px; font-weight: 800; color: var(--text-main); margin-top: 4px;" id="critPpmVal">
+          465.0 PPM
+        </div>
+      </div>
+
+      <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); letter-spacing: 0.8px;">
+        IMMEDIATE LIFE-SAFETY DIRECTIVES
+      </div>
+
+      <div class="rule-item">
+        <div class="rule-icon-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </div>
+        <div>
+          <div class="rule-title">Do not operate electrical switches or appliances</div>
+          <div class="rule-desc">Electrical contact arcing can ignite the combustible air-fuel vapor.</div>
+        </div>
+      </div>
+
+      <div class="rule-item">
+        <div class="rule-icon-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 16v-4M12 8h.01"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="rule-title">Do not turn on electrical fans or exhaust hoods</div>
+          <div class="rule-desc">Motor brushes generate continuous micro-sparks.</div>
+        </div>
+      </div>
+
+      <div class="rule-item">
+        <div class="rule-icon-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+            <path d="M3 3h18v18H3z"></path>
+            <path d="M3 12h18M12 3v18"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="rule-title">Open doors and windows naturally</div>
+          <div class="rule-desc">Allow ambient convection to disperse gas toward exterior exits.</div>
+        </div>
+      </div>
+
+      <div class="rule-item">
+        <div class="rule-icon-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+            <path d="M13 4v16M17 4v16M6 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="rule-title">Evacuate immediately to safe assembly zone</div>
+          <div class="rule-desc">Leave premises calmly and confirm muster check-in.</div>
+        </div>
+      </div>
+
+      <button class="call-btn" onclick="alert('Initiating emergency call dispatch to 911 / BFP...')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+        </svg>
+        CALL EMERGENCY SERVICES (911 / BFP)
+      </button>
+
+      <button class="snooze-btn" onclick="snoozeAlarm()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+          <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+        </svg>
+        <span id="snoozeText">MUTE AUDIBLE SIREN (2 MINUTES)</span>
+      </button>
+    </div>
+
+    <!-- Settings & Controls Modal Sheet (Matching Mobile SettingsModal) -->
+    <div class="settings-sheet-overlay" id="settingsModal" onclick="if(event.target===this)closeSettingsModal()">
+      <div class="settings-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header-row">
+          <div class="sheet-title-group">
+            <div class="settings-icon-wrap" style="background-color: rgba(16, 185, 129, 0.15);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </div>
+            <div>
+              <div style="font-size: 15px; font-weight: 700; color: #FFFFFF;">Settings & Controls</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Text enlargement, alarm tests, and network setup</div>
+            </div>
+          </div>
+          <button class="sheet-close-btn" onclick="closeSettingsModal()">✕</button>
+        </div>
+
+        <div class="settings-scroll-content">
+          <!-- SECTION 1: ALARM SIMULATION -->
+          <div class="settings-section-card">
+            <div class="settings-section-hdr">
+              <div class="settings-icon-wrap" style="background-color: rgba(245, 158, 11, 0.12);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2">
+                  <path d="M10 2v7.31M14 9.3V2M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"></path>
+                </svg>
+              </div>
+              <div style="flex: 1;">
+                <div style="font-size: 13.5px; font-weight: 700; color: #FFFFFF;">Alarm Simulation</div>
+                <div style="font-size: 11px; color: var(--text-muted); line-height: 1.35; margin-top: 1px;">
+                  Test the emergency evacuation alarm and voice directives.
+                </div>
+              </div>
+            </div>
+            <button class="btn-action" onclick="toggleSimulation(); closeSettingsModal();" style="width: 100%; margin-top: 2px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <span>RUN LEAK SIMULATION DEMO</span>
+            </button>
+          </div>
+
+          <!-- SECTION 2: AUDIO & ALARM TEST (Sound & Alarm Test) -->
+          <div class="settings-section-card">
+            <div class="settings-section-hdr">
+              <div class="settings-icon-wrap" style="background-color: rgba(16, 185, 129, 0.12);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+              </div>
+              <div style="flex: 1;">
+                <div style="font-size: 13.5px; font-weight: 700; color: #FFFFFF;">Sound & Voice Test</div>
+                <div style="font-size: 11px; color: var(--text-muted); line-height: 1.35; margin-top: 1px;">
+                  Check speaker audio and synthesized voice alerts.
+                </div>
+              </div>
+            </div>
+            <button class="btn-action" onclick="testVoiceDiagnostic()" style="width: 100%; margin-top: 2px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+              </svg>
+              <span>TEST VOICE ALARM</span>
+            </button>
+          </div>
+
+          <!-- SECTION 3: TEXT ENLARGER & READABILITY (PLACED UNDER SOUND & ALARM TEST) -->
+          <div class="settings-section-card">
+            <div class="settings-section-hdr">
+              <div class="settings-icon-wrap" style="background-color: rgba(16, 185, 129, 0.12);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5">
+                  <path d="M4 7V4h16v3M9 20h6M12 4v16"></path>
+                </svg>
+              </div>
+              <div style="flex: 1;">
+                <div style="font-size: 13.5px; font-weight: 700; color: #FFFFFF;">Text Enlarger</div>
+                <div style="font-size: 11px; color: var(--text-muted); line-height: 1.35; margin-top: 1px;">
+                  Adjust font size for emergency readability.
+                </div>
+              </div>
+            </div>
+
+            <!-- Scale Preset Pills (Clean 3-Preset Layout) -->
+            <div class="scale-pills-row">
+              <button class="scale-pill-btn active" id="scalePill100" onclick="setTextEnlarger(1.0)">Standard</button>
+              <button class="scale-pill-btn" id="scalePill115" onclick="setTextEnlarger(1.15)">Large</button>
+              <button class="scale-pill-btn" id="scalePill130" onclick="setTextEnlarger(1.30)">Extra Large</button>
+            </div>
+
+            <!-- Live Text Preview Box -->
+            <div class="scale-preview-box">
+              <div style="font-size: 13.5px; font-weight: 800; color: #EF4444; line-height: 1.35;" id="previewHeadline">
+                CRITICAL HAZARD: Flammable Gas Leak
+              </div>
+              <div style="font-size: 11px; color: #CBD5E1; line-height: 1.4;" id="previewBody">
+                Evacuate premises immediately. Do not operate electrical switches.
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 4: HARDWARE CONNECTION -->
+          <div class="settings-section-card">
+            <div class="settings-section-hdr">
+              <div class="settings-icon-wrap" style="background-color: rgba(59, 130, 246, 0.12);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2">
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                  <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                  <line x1="12" y1="20" x2="12.01" y2="20"></line>
+                </svg>
+              </div>
+              <div style="flex: 1;">
+                <div style="font-size: 13.5px; font-weight: 700; color: #FFFFFF;">Ceiling Sensor Device</div>
+                <div style="font-size: 11px; color: var(--text-muted); line-height: 1.35; margin-top: 1px;">
+                  Connect to physical ESP32 ceiling unit over local Wi-Fi.
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px; margin-top: 2px;">
+              <input type="text" value="192.168.43.100" style="flex: 1; background-color: #1E293B; border: 1px solid #334155; color: #FFFFFF; padding: 7px 10px; border-radius: 8px; font-family: var(--font-mono); font-size: 12px;" />
+              <button style="background-color: #10B981; border: none; color: #FFFFFF; font-weight: 700; padding: 7px 12px; border-radius: 8px; font-size: 11.5px; cursor: pointer;">CONNECT</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Dial & Rotary Dial Prototype Sheet (Triggered by Header DIAL Button) -->
+    <div class="dial-modal-overlay" id="dialModal" onclick="if(event.target===this)closeActionDialModal()">
+      <div class="dial-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header-row">
+          <div class="sheet-title-group">
+            <div class="sheet-icon-circle" style="background-color: rgba(16, 185, 129, 0.15);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5">
+                <circle cx="12" cy="12" r="9"></circle>
+                <circle cx="12" cy="12" r="3"></circle>
+                <line x1="12" y1="3" x2="12" y2="7"></line>
+              </svg>
+            </div>
+            <div>
+              <div style="font-size: 15px; font-weight: 700; color: #FFFFFF;">Action Dial Prototype</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Tactile micro-interaction: Arc fan & Rotary dial</div>
+            </div>
+          </div>
+          <button class="sheet-close-btn" onclick="closeActionDialModal()">✕</button>
+        </div>
+
+        <!-- Mode Tabs -->
+        <div class="dial-tabs">
+          <button class="dial-tab-btn active" id="tabArcDial" onclick="switchDialTab('arc')">
+            Arc Action Dial (Jeffin Sam)
+          </button>
+          <button class="dial-tab-btn" id="tabRotaryDial" onclick="switchDialTab('rotary')">
+            Rotary Dial Prototype (Emani.Ui)
+          </button>
+        </div>
+
+        <!-- Tab 1: Semicircular Arc Action Dial (Jeffin Sam Micro Interaction) -->
+        <div class="dial-tab-content" id="arcDialView">
+          <div style="text-align: center; margin-bottom: 6px;">
+            <div style="font-size: 12px; font-weight: 700; color: #FFFFFF;" id="arcStatusTitle">Select a tier segment or press TAKE ACTION</div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Expandable concentric arc wedges with tactile feedback</div>
+          </div>
+
+          <div class="arc-stage">
+            <!-- Tier 2 Expanded Fan Arcs (Appears when a tier 1 wedge is selected) -->
+            <div class="arc-tier2-wrap" id="arcTier2Wrap"></div>
+
+            <!-- Tier 1 Semicircular Arc -->
+            <div class="arc-tier1-container">
+              <button class="arc-wedge-btn active" id="wedgeHelp" onclick="selectArcTier1('help')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+                <span>Request Help</span>
+              </button>
+
+              <button class="arc-wedge-btn" id="wedgeAdvice" onclick="selectArcTier1('advice')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>View Directives</span>
+              </button>
+
+              <button class="arc-wedge-btn" id="wedgeInfo" onclick="selectArcTier1('info')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 20V10M12 20V4M6 20v-6"></path>
+                </svg>
+                <span>Sensor Data</span>
+              </button>
+
+              <!-- Central Core Button -->
+              <button class="arc-center-core" onclick="triggerCoreAction()">
+                <span>TAKE ACTION</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Action Result Toast / Description -->
+          <div style="background-color: #1E293B; border: 1px solid #334155; border-radius: 10px; padding: 10px 14px; width: 100%; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 12.5px; font-weight: 700; color: #FFFFFF;" id="arcSelectedName">Emergency 911 Command</div>
+              <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;" id="arcSelectedDesc">Direct nationwide fire rescue, police, and HAZMAT dispatch</div>
+            </div>
+            <button onclick="executeArcAction()" style="background-color: var(--primary); color: #FFFFFF; border: none; padding: 7px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;">
+              EXECUTE
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab 2: Sleek Rotary Dial Prototype (Emani.Ui Model) -->
+        <div class="dial-tab-content" id="rotaryDialView" style="display: none;">
+          <div style="text-align: center; margin-bottom: 4px;">
+            <div style="font-size: 12px; font-weight: 700; color: #FFFFFF;">Rotate Dial to Select Emergency Hotline</div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Tactile rotary knob with precision LED notch and orbital actions</div>
+          </div>
+
+          <!-- Rotary Stage with Orbital Nodes & Center Dial -->
+          <div class="rotary-stage">
+            <div class="rotary-orbit-ring"></div>
+
+            <!-- 6 Orbital Action Nodes -->
+            <!-- 0 deg: 911 Command -->
+            <button class="rotary-node-btn active" id="rnode0" style="top: 0; left: 113px;" onclick="setRotaryIndex(0)" title="911 Command">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+            </button>
+
+            <!-- 60 deg: BFP Fire Hazmat -->
+            <button class="rotary-node-btn" id="rnode1" style="top: 48px; left: 212px;" onclick="setRotaryIndex(1)" title="BFP Fire Hazmat">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+              </svg>
+            </button>
+
+            <!-- 120 deg: Red Cross 143 -->
+            <button class="rotary-node-btn" id="rnode2" style="top: 178px; left: 212px;" onclick="setRotaryIndex(2)" title="Red Cross Ambulance">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M12 2v20M2 12h20"></path>
+              </svg>
+            </button>
+
+            <!-- 180 deg: Muster Check-In -->
+            <button class="rotary-node-btn" id="rnode3" style="top: 226px; left: 113px;" onclick="setRotaryIndex(3)" title="Muster Check-In">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+              </svg>
+            </button>
+
+            <!-- 240 deg: Mute Siren -->
+            <button class="rotary-node-btn" id="rnode4" style="top: 178px; left: 14px;" onclick="setRotaryIndex(4)" title="Mute Siren">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+                <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+              </svg>
+            </button>
+
+            <!-- 300 deg: Poison Control PGH -->
+            <button class="rotary-node-btn" id="rnode5" style="top: 48px; left: 14px;" onclick="setRotaryIndex(5)" title="Poison Control PGH">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </button>
+
+            <!-- Central Rotary Knob -->
+            <div class="rotary-knob-base" id="rotaryKnob" onclick="stepRotary(1)">
+              <div class="rotary-indicator-notch"></div>
+              <div class="rotary-knob-inner">
+                <div class="rotary-selected-title" id="rotaryCenterTitle">911 SOS</div>
+                <div class="rotary-selected-sub" id="rotaryCenterSub">DIAL NOW</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stepper Controls & Action Trigger -->
+          <div style="display: flex; gap: 8px; width: 100%; margin-top: 4px;">
+            <button onclick="stepRotary(-1)" style="flex: 1; background-color: #1E293B; border: 1px solid #334155; color: #FFFFFF; padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer;">
+              ◀ Previous
+            </button>
+            <button onclick="executeRotaryAction()" style="flex: 2; background-color: var(--primary); color: #FFFFFF; border: none; padding: 10px; border-radius: 8px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+              DIAL / EXECUTE ACTION
+            </button>
+            <button onclick="stepRotary(1)" style="flex: 1; background-color: #1E293B; border: 1px solid #334155; color: #FFFFFF; padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer;">
+              Next ▶
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State Variables
+    let isSimulating = false;
+    let simTimer = null;
+    let simStep = 0;
+    let environmentMode = 'HOME';
+    let isMuted = false;
+
+    // Speak voice guidance using native browser Web Speech API
+    function speakText(text) {
+      if (isMuted || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.05;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function toggleProfile() {
+      environmentMode = (environmentMode === 'HOME') ? 'FACILITY' : 'HOME';
+      document.getElementById('profileBtn').innerText = environmentMode;
+      document.getElementById('facilityMusterBox').style.display = (environmentMode === 'FACILITY') ? 'flex' : 'none';
+    }
+
+    function confirmMuster() {
+      document.getElementById('musterStatus').innerText = 'SAFE / CHECKED IN';
+      document.getElementById('musterBtn').style.backgroundColor = 'var(--card-elevated)';
+      document.getElementById('musterBtn').innerText = 'SAFETY CHECK CONFIRMED';
+    }
+
+    function testVoiceDiagnostic() {
+      speakText('AeroSense alert diagnostic confirmed. Hardware actuators operational.');
+    }
+
+    function toggleSimulation() {
+      isSimulating = !isSimulating;
+      const btn = document.getElementById('simToggleBtn');
+      const netLabel = document.getElementById('netLabel');
+      const netDot = document.getElementById('netDot');
+
+      if (isSimulating) {
+        btn.classList.add('active-sim');
+        btn.innerText = 'STOP SIMULATION';
+        netLabel.innerText = 'SIM FEED';
+        netDot.style.backgroundColor = 'var(--warning)';
+        simStep = 0;
+
+        simTimer = setInterval(() => {
+          simStep++;
+          if (simStep < 3) {
+            // Normal state
+            updateUI(36.0, 14.0, 6.0, 0, 'SYSTEM NORMAL', 'Air composition within safe baseline');
+          } else if (simStep < 6) {
+            // Advisory Warning state
+            updateUI(235.0, 140.0, 18.0, 1, 'ADVISORY WARNING', 'Elevated combustible gas detected');
+          } else if (simStep < 14) {
+            // Critical Emergency state
+            updateUI(475.0, 220.0, 32.0, 2, 'CRITICAL EMERGENCY', 'Evacuate premises immediately');
+          } else {
+            // Reset
+            updateUI(34.2, 12.0, 5.5, 0, 'SYSTEM NORMAL', 'Air composition within safe baseline');
+            toggleSimulation();
+          }
+        }, 1600);
+      } else {
+        btn.classList.remove('active-sim');
+        btn.innerText = 'SIMULATE LEAK';
+        netLabel.innerText = 'LAN DIRECT';
+        netDot.style.backgroundColor = 'var(--primary)';
+        clearInterval(simTimer);
+        document.getElementById('emergencyModal').classList.remove('active');
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        updateUI(34.2, 12.0, 5.5, 0, 'SYSTEM NORMAL', 'Air composition within safe baseline');
+      }
+    }
+
+    let isWarningRibbonDismissed = false;
+
+    function dismissWarningRibbon() {
+      isWarningRibbonDismissed = true;
+      const warnRibbon = document.getElementById('thresholdWarningRibbon');
+      if (warnRibbon) warnRibbon.style.display = 'none';
+    }
+
+    function updateUI(mq2, mq8, mq7, level, title, sub) {
+      document.getElementById('valMq2').innerText = mq2.toFixed(1);
+      document.getElementById('valMq8').innerText = mq8.toFixed(1);
+      document.getElementById('valMq7').innerText = mq7.toFixed(1);
+
+      document.getElementById('fillMq2').style.width = Math.min(100, (mq2 / 400) * 100) + '%';
+      document.getElementById('fillMq8').style.width = Math.min(100, (mq8 / 800) * 100) + '%';
+      document.getElementById('fillMq7').style.width = Math.min(100, (mq7 / 50) * 100) + '%';
+
+      const peak = Math.max(mq2, mq8, mq7);
+      document.getElementById('peakPpmVal').innerText = peak.toFixed(1);
+      document.getElementById('haloTitle').innerText = title;
+      document.getElementById('haloSub').innerText = sub;
+
+      const haloOuter = document.getElementById('haloOuter');
+      const haloInner = document.getElementById('haloInner');
+      const modal = document.getElementById('emergencyModal');
+
+      // Top Rising Threshold Advisory Warning Ribbon
+      const warnRibbon = document.getElementById('thresholdWarningRibbon');
+      if (level === 1 && !isWarningRibbonDismissed) {
+        if (warnRibbon) {
+          warnRibbon.style.display = 'flex';
+          const gasName = (mq7 >= 25) ? 'CARBON MONOXIDE (CO)' : (mq8 >= 400) ? 'HYDROGEN GAS (H2)' : 'FLAMMABLE GAS / LPG';
+          const gasPpm = (mq7 >= 25) ? mq7 : (mq8 >= 400) ? mq8 : mq2;
+          const gasThresh = (mq7 >= 25) ? '25 PPM' : (mq8 >= 400) ? '400 PPM' : '200 PPM';
+          document.getElementById('warnRibbonTitle').innerText = 'THRESHOLD RISING: ' + gasName;
+          document.getElementById('warnRibbonBadge').innerText = gasPpm.toFixed(1) + ' PPM';
+          document.getElementById('warnRibbonSub').innerText = 'Caution: Level exceeded ' + gasThresh + ' warning limit. Open windows and ventilate area.';
+        }
+      } else {
+        if (warnRibbon) warnRibbon.style.display = 'none';
+        if (level === 0) isWarningRibbonDismissed = false;
+      }
+
+      if (level === 2) {
+        haloOuter.style.borderColor = 'var(--danger)';
+        haloOuter.style.backgroundColor = 'var(--danger-glow)';
+        haloInner.style.borderColor = 'var(--danger)';
+        document.getElementById('haloTitle').style.color = 'var(--danger)';
+        document.getElementById('cardMq2').className = 'card alert-crit';
+        document.getElementById('badgeMq2').innerText = 'CRITICAL';
+        document.getElementById('badgeMq2').style.borderColor = 'var(--danger)';
+        document.getElementById('badgeMq2').style.color = 'var(--danger)';
+        document.getElementById('critPpmVal').innerText = mq2.toFixed(1) + ' PPM';
+
+        modal.classList.add('active');
+        speakText('Critical flammable gas leak detected. Do not toggle electrical switches or exhaust fans. Extinguish flames and evacuate immediately.');
+      } else if (level === 1) {
+        haloOuter.style.borderColor = 'var(--warning)';
+        haloOuter.style.backgroundColor = 'var(--warning-glow)';
+        haloInner.style.borderColor = 'var(--warning)';
+        document.getElementById('haloTitle').style.color = 'var(--warning)';
+        document.getElementById('cardMq2').className = 'card alert-warn';
+        document.getElementById('badgeMq2').innerText = 'ELEVATED';
+        document.getElementById('badgeMq2').style.borderColor = 'var(--warning)';
+        document.getElementById('badgeMq2').style.color = 'var(--warning)';
+        modal.classList.remove('active');
+      } else {
+        haloOuter.style.borderColor = 'var(--primary)';
+        haloOuter.style.backgroundColor = 'var(--primary-glow)';
+        haloInner.style.borderColor = 'var(--primary)';
+        document.getElementById('haloTitle').style.color = 'var(--primary)';
+        document.getElementById('cardMq2').className = 'card';
+        document.getElementById('badgeMq2').innerText = 'NORMAL';
+        document.getElementById('badgeMq2').style.borderColor = 'var(--primary)';
+        document.getElementById('badgeMq2').style.color = 'var(--primary)';
+        modal.classList.remove('active');
+      }
+      renderOccupantRoster();
+    }
+
+    function snoozeAlarm() {
+      isMuted = true;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      document.getElementById('snoozeText').innerText = 'SIREN SNOOZED (MUTED)';
+      setTimeout(() => {
+        isMuted = false;
+        document.getElementById('snoozeText').innerText = 'MUTE AUDIBLE SIREN (2 MINUTES)';
+      }, 120000);
+    }
+
+    /* Official Verified Philippine Emergency Hotlines */
+    const VERIFIED_HOTLINES = [
+      {
+        id: 'emergency_911',
+        name: 'National Emergency Hotline',
+        agency: 'Emergency 911 National Command',
+        phone: '911',
+        displayPhone: '911',
+        category: 'PRIMARY',
+        categoryLabel: 'NATIONAL RESCUE',
+        badgeColor: '#EF4444',
+        desc: 'Immediate nationwide dispatch for fire rescue, police, and emergency medical.'
+      },
+      {
+        id: 'red_cross_143',
+        name: 'Philippine Red Cross',
+        agency: 'PRC Emergency Medical & Ambulance',
+        phone: '143',
+        displayPhone: '143',
+        category: 'MEDICAL',
+        categoryLabel: 'AMBULANCE / OXYGEN',
+        badgeColor: '#E11D48',
+        desc: '24/7 emergency ambulance dispatch, oxygen therapy, and burn trauma care.'
+      },
+      {
+        id: 'bfp_hazmat',
+        name: 'Bureau of Fire Protection (BFP)',
+        agency: 'BFP National Hazmat & Fire Suppression',
+        phone: '0284260219',
+        displayPhone: '(02) 8426-0219',
+        category: 'FIRE_HAZMAT',
+        categoryLabel: 'FIRE & HAZMAT',
+        badgeColor: '#F97316',
+        desc: 'Direct response for flammable vapor, LPG cylinder leaks, and explosion prevention.'
+      },
+      {
+        id: 'up_pgh_poison',
+        name: 'National Poison Control (PGH)',
+        agency: 'UP Manila - Philippine General Hospital',
+        phone: '0285241078',
+        displayPhone: '(02) 8524-1078',
+        category: 'POISON',
+        categoryLabel: 'TOXICOLOGY / CO',
+        badgeColor: '#8B5CF6',
+        desc: 'Specialized medical guidance for Carbon Monoxide asphyxiation and toxic inhalation.'
+      },
+      {
+        id: 'ndrrmc_ops',
+        name: 'NDRRMC Disaster Operations',
+        agency: 'Office of Civil Defense (OCD)',
+        phone: '0289111406',
+        displayPhone: '(02) 8911-1406',
+        category: 'LOCAL',
+        categoryLabel: 'CIVIL DEFENSE',
+        badgeColor: '#3B82F6',
+        desc: 'Community-scale disaster operations and public civil defense coordination.'
+      },
+      {
+        id: 'safety_lead',
+        name: 'Facility Safety Marshal',
+        agency: 'On-Site Property / Building Lead',
+        phone: '09171234567',
+        displayPhone: '0917-123-4567',
+        category: 'LOCAL',
+        categoryLabel: 'ON-SITE MARSHAL',
+        badgeColor: '#10B981',
+        desc: 'On-site coordinator for building gas mains shutoff and outdoor assembly muster.'
+      }
+    ];
+
+    let currentSheetCategory = 'ALL';
+
+    function openHotlineSheet() {
+      document.getElementById('hotlineSheetModal').classList.add('active');
+      renderSheetContacts();
+    }
+
+    function closeHotlineSheet() {
+      document.getElementById('hotlineSheetModal').classList.remove('active');
+    }
+
+    function setSheetFilter(cat, btn) {
+      currentSheetCategory = cat;
+      const buttons = document.querySelectorAll('.sheet-filter-btn');
+      buttons.forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderSheetContacts();
+    }
+
+    function renderSheetContacts() {
+      const container = document.getElementById('sheetContactsList');
+      if (!container) return;
+
+      const filtered = currentSheetCategory === 'ALL'
+        ? VERIFIED_HOTLINES
+        : VERIFIED_HOTLINES.filter(c => c.category === currentSheetCategory);
+
+      let html = '';
+      filtered.forEach(c => {
+        html += `
+          <div class="sheet-contact-card" style="background-color: #1E293B; border: 1px solid #334155; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; padding: 3px 8px; border-radius: 5px; border: 1px solid ${c.badgeColor}; color: ${c.badgeColor}; background: rgba(255,255,255,0.06); letter-spacing: 0.5px;">
+                ${c.categoryLabel}
+              </span>
+              <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: #10B981; background: rgba(16,185,129,0.12); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(16,185,129,0.3);">
+                ${c.displayPhone}
+              </span>
+            </div>
+            <div>
+              <div style="font-size: 13.5px; font-weight: 700; color: #FFFFFF; line-height: 1.35; word-break: break-word;">${c.name}</div>
+              <div style="font-size: 11px; font-weight: 500; color: #94A3B8; margin-top: 2px; line-height: 1.3;">${c.agency}</div>
+            </div>
+            <div style="font-size: 11px; color: #CBD5E1; line-height: 1.45; word-break: break-word;">
+              ${c.desc}
+            </div>
+            <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 4px; gap: 8px;">
+              <button onclick="triggerCall('${c.phone}', '${c.name}')"
+                      style="background-color: ${c.badgeColor}; color: #FFFFFF; border: 1px solid rgba(255,255,255,0.25); padding: 8px 16px; border-radius: 8px; font-size: 11.5px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 3px 10px rgba(0,0,0,0.35);">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+                CALL ${c.displayPhone}
+              </button>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function triggerCall(num, name) {
+      speakText('Connecting emergency call to ' + name);
+      alert('AeroSense Quick Call: Dialing ' + name + ' (' + num + ')');
+    }
+
+    // ========================================================
+    // Audio Synthesizer: Mechanical Clicks & Haptic Pulses
+    // ========================================================
+    function playClickSound(freq = 900, type = 'sine') {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.04);
+      } catch (e) {}
+    }
+
+    // ========================================================
+    // Settings Modal & Text Enlarger Controller
+    // ========================================================
+    let currentTextScale = 1.0;
+
+    function openSettingsModal() {
+      playClickSound(950);
+      document.getElementById('settingsModal').classList.add('active');
+    }
+
+    function closeSettingsModal() {
+      playClickSound(800);
+      document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    function setTextEnlarger(scale) {
+      currentTextScale = scale;
+      playClickSound(900 + (scale - 1) * 600);
+
+      // Update pills
+      document.getElementById('scalePill100').classList.toggle('active', scale === 1.0);
+      document.getElementById('scalePill115').classList.toggle('active', scale === 1.15);
+      document.getElementById('scalePill130').classList.toggle('active', scale === 1.30);
+
+      // Update preview text box
+      const previewHead = document.getElementById('previewHeadline');
+      const previewBody = document.getElementById('previewBody');
+      if (previewHead) previewHead.style.fontSize = Math.round(13.5 * scale) + 'px';
+      if (previewBody) previewBody.style.fontSize = Math.round(11 * scale) + 'px';
+
+      // Apply font scaling to phone chassis
+      const chassis = document.querySelector('.phone-chassis');
+      if (chassis) {
+        chassis.classList.remove('font-scale-115', 'font-scale-130');
+        if (scale === 1.15) chassis.classList.add('font-scale-115');
+        if (scale === 1.30) chassis.classList.add('font-scale-130');
+      }
+    }
+
+    // ========================================================
+    // Household Wi-Fi Safety Group & Occupants Controller
+    // ========================================================
+    let occupantsData = [
+      { id: 'usr_me', name: 'My Smartphone', isSelf: true, isSafe: false, type: 'mobile' },
+      { id: 'usr_dad', name: "Dad's Phone (Kitchen)", isSelf: false, isSafe: false, type: 'mobile' },
+      { id: 'usr_mom', name: "Mom's Phone (Living Room)", isSelf: false, isSafe: false, type: 'mobile' },
+    ];
+
+    let wifiGroupData = {
+      ssid: 'Home_WiFi',
+      subnet: '192.168.1.0/24',
+      groupName: 'Home Wi-Fi Safety Group',
+      connectedPhonesCount: 3,
+    };
+
+    function renderOccupantRoster() {
+      const container = document.getElementById('rosterList');
+      if (!container) return;
+
+      const safeCount = occupantsData.filter(o => o.isSafe).length;
+      const totalCount = occupantsData.length;
+      const allSafe = totalCount > 0 && safeCount === totalCount;
+      const mySelf = occupantsData.find(o => o.isSelf);
+
+      // Card Header Status
+      const isEmergencyState = (simStep >= 6 && isSimulating);
+      const card = document.getElementById('rosterCard');
+      const cardTitle = document.getElementById('rosterCardTitle');
+      const cardSub = document.getElementById('rosterCardSub');
+      const badge = document.getElementById('rosterStatusBadge');
+      const selfBtn = document.getElementById('rosterSelfBtn');
+
+      if (card) {
+        card.classList.toggle('active-emergency', isEmergencyState);
+      }
+
+      if (isEmergencyState) {
+        if (cardTitle) cardTitle.innerText = 'Evacuation Check-In';
+        if (cardSub) cardSub.innerText = allSafe ? 'All occupants confirmed safe outside' : 'Confirm who has reached safety outside';
+        if (badge) {
+          badge.innerText = `${safeCount} of ${totalCount} Safe`;
+          badge.style.color = allSafe ? 'var(--primary)' : 'var(--warning)';
+          badge.style.backgroundColor = allSafe ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+        }
+        if (selfBtn) {
+          selfBtn.style.display = (mySelf && !mySelf.isSafe) ? 'flex' : 'none';
+        }
+      } else {
+        if (cardTitle) cardTitle.innerText = 'Family & Occupants';
+        if (cardSub) cardSub.innerText = `${totalCount} registered • Ready on local hub`;
+        if (badge) {
+          badge.innerText = 'STANDBY';
+          badge.style.color = 'var(--text-muted)';
+          badge.style.backgroundColor = 'var(--card-elevated)';
+        }
+        if (selfBtn) selfBtn.style.display = 'none';
+      }
+
+      // Wi-Fi Banner text
+      const netCount = document.getElementById('netGroupSub');
+      if (netCount) {
+        netCount.innerText = `${wifiGroupData.connectedPhonesCount} phones joined on ${wifiGroupData.ssid} • Subnet ${wifiGroupData.subnet}`;
+      }
+
+      let html = '';
+      occupantsData.forEach(person => {
+        const isSafe = person.isSafe;
+        html += `
+          <div class="roster-item">
+            <div class="roster-item-left">
+              <div class="roster-item-icon ${isSafe ? 'safe' : ''}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  ${person.type === 'mobile' 
+                    ? '<rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line>'
+                    : '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>'
+                  }
+                </svg>
+              </div>
+              <div>
+                <div class="roster-item-name">
+                  <span>${person.name}</span>
+                  ${person.isSelf ? '<span class="roster-you-badge">YOU</span>' : ''}
+                </div>
+                <div style="font-size: 10px; color: var(--text-muted); margin-top: 1px;">
+                  ${isEmergencyState 
+                    ? (isSafe ? 'Confirmed safe outside' : 'Inside premises')
+                    : 'Standing by on local Wi-Fi'
+                  }
+                </div>
+              </div>
+            </div>
+            <div class="roster-status-chip ${isEmergencyState ? (isSafe ? 'chip-safe' : 'chip-pending') : 'chip-standby'}" onclick="toggleOccupantSafe('${person.id}')">
+              ${isEmergencyState
+                ? (isSafe ? 'Safe Outside ✓' : 'Still Inside')
+                : 'Ready'
+              }
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function toggleOccupantSafe(id) {
+      playClickSound(1050);
+      const person = occupantsData.find(o => o.id === id);
+      if (person) {
+        person.isSafe = !person.isSafe;
+        renderOccupantRoster();
+      }
+    }
+
+    function checkInSelf() {
+      playClickSound(1200);
+      const mySelf = occupantsData.find(o => o.isSelf);
+      if (mySelf) {
+        mySelf.isSafe = true;
+        renderOccupantRoster();
+        speakText('Safety check confirmed. Your status is shared with the home network.');
+      }
+    }
+
+    function simulateNewPeerPhone() {
+      playClickSound(1150);
+      const candidates = [
+        "Sister's iPhone (Upstairs)",
+        "Grandma's Phone (Bedroom 1)",
+        "Family Tablet (Living Room)",
+        "Guest Phone (Patio)",
+      ];
+      const unused = candidates.find(c => !occupantsData.some(o => o.name === c)) || `Phone ${occupantsData.length + 1} (Wi-Fi)`;
+      const newPeer = {
+        id: 'peer_' + Date.now(),
+        name: unused,
+        isSelf: false,
+        isSafe: false,
+        type: 'mobile',
+      };
+      occupantsData.push(newPeer);
+      wifiGroupData.connectedPhonesCount = occupantsData.length;
+      renderOccupantRoster();
+      speakText('New family device discovered on home Wi-Fi: ' + unused);
+    }
+
+    // ========================================================
+    // Action Dial & Rotary Dial Controller
+    // ========================================================
+    let currentDialTab = 'arc';
+    let currentArcTier1 = 'help';
+    let currentArcSelectedAction = {
+      name: 'Emergency 911 Command',
+      desc: 'Direct nationwide fire rescue, police, and HAZMAT dispatch',
+      phone: '911',
+    };
+
+    const ARC_TIER2_DATA = {
+      help: [
+        { id: 'arc_911', name: '911 Command', agency: 'National 911', phone: '911', desc: 'Direct nationwide fire rescue, police, and HAZMAT dispatch' },
+        { id: 'arc_143', name: 'Red Cross 143', agency: 'PRC Ambulance', phone: '143', desc: 'Immediate ambulance and emergency medical dispatch' },
+        { id: 'arc_bfp', name: 'BFP Hazmat', agency: 'Fire Protection', phone: '0284260219', desc: 'Specialized response for flammable and hazardous gas leaks' },
+      ],
+      advice: [
+        { id: 'dir_switches', name: 'No Switches', agency: 'Spark Prevention', phone: null, desc: 'Do not toggle electrical switches to prevent spark ignition' },
+        { id: 'dir_fans', name: 'No Exhaust Fans', agency: 'Motor Arcing', phone: null, desc: 'Exhaust motors create micro-arcs in the vapor plume' },
+        { id: 'dir_windows', name: 'Open Windows', agency: 'Convection', phone: null, desc: 'Ventilate naturally by opening exterior doors and windows' },
+      ],
+      info: [
+        { id: 'info_mq2', name: 'MQ-2 Combustible', agency: 'CH4 / LPG', phone: null, desc: 'Detects Methane, Propane, and flammable vapors at 200/400 PPM' },
+        { id: 'info_mq8', name: 'MQ-8 Hydrogen', agency: 'H2 Plume', phone: null, desc: 'Ultra-light buoyant gas detector calibrated at 400/800 PPM' },
+        { id: 'info_mq7', name: 'MQ-7 Carbon Monoxide', agency: 'CO Asphyxiant', phone: null, desc: 'Dual-voltage heating cycle sensor monitoring 25/50 PPM' },
+      ],
+    };
+
+    // Rotary Dial Actions (6 orbital nodes)
+    const ROTARY_ACTIONS = [
+      { name: '911 SOS', sub: 'DIAL NOW', phone: '911', desc: 'Emergency 911 National Command Dispatch', angle: 0 },
+      { name: 'BFP Hazmat', sub: 'CALL FIRE', phone: '0284260219', desc: 'Bureau of Fire Protection Hazardous Gas Response', angle: 60 },
+      { name: 'Red Cross 143', sub: 'AMBULANCE', phone: '143', desc: 'Philippine Red Cross Emergency Medical Services', angle: 120 },
+      { name: 'Check-In', sub: 'MARK SAFE', phone: null, desc: 'Confirm your status safe at muster assembly area', angle: 180 },
+      { name: 'Mute Siren', sub: 'SILENCE 2M', phone: null, desc: 'Silence audible alarm for 2 minutes during evacuation', angle: 240 },
+      { name: 'Poison PGH', sub: 'TOXICOLOGY', phone: '0285241078', desc: 'UP-PGH National Poison Control for toxic inhalation', angle: 300 },
+    ];
+    let currentRotaryIndex = 0;
+
+    function openActionDialModal() {
+      playClickSound(950);
+      document.getElementById('dialModal').classList.add('active');
+      switchDialTab(currentDialTab);
+      renderArcTier2();
+    }
+
+    function closeActionDialModal() {
+      playClickSound(800);
+      document.getElementById('dialModal').classList.remove('active');
+    }
+
+    function switchDialTab(tab) {
+      currentDialTab = tab;
+      playClickSound(880);
+      document.getElementById('tabArcDial').classList.toggle('active', tab === 'arc');
+      document.getElementById('tabRotaryDial').classList.toggle('active', tab === 'rotary');
+      document.getElementById('arcDialView').style.display = (tab === 'arc') ? 'flex' : 'none';
+      document.getElementById('rotaryDialView').style.display = (tab === 'rotary') ? 'flex' : 'none';
+      if (tab === 'arc') renderArcTier2();
+      else updateRotaryDialUI();
+    }
+
+    function selectArcTier1(tier) {
+      currentArcTier1 = tier;
+      playClickSound(1000);
+      document.getElementById('wedgeHelp').classList.toggle('active', tier === 'help');
+      document.getElementById('wedgeAdvice').classList.toggle('active', tier === 'advice');
+      document.getElementById('wedgeInfo').classList.toggle('active', tier === 'info');
+      renderArcTier2();
+    }
+
+    function renderArcTier2() {
+      const container = document.getElementById('arcTier2Wrap');
+      if (!container) return;
+      const items = ARC_TIER2_DATA[currentArcTier1] || [];
+      let html = '';
+      items.forEach((item, idx) => {
+        html += `
+          <button class="arc-wedge-t2" onclick="selectArcItem('${item.id}', '${item.name}', '${item.desc}', '${item.phone || ''}')">
+            <span>${item.name}</span>
+            <span style="font-family: var(--font-mono); font-size: 8px; color: var(--primary);">${item.agency}</span>
+          </button>
+        `;
+      });
+      container.innerHTML = html;
+      if (items.length > 0) {
+        selectArcItem(items[0].id, items[0].name, items[0].desc, items[0].phone || '');
+      }
+    }
+
+    function selectArcItem(id, name, desc, phone) {
+      playClickSound(1100);
+      currentArcSelectedAction = { id, name, desc, phone };
+      document.getElementById('arcSelectedName').innerText = name;
+      document.getElementById('arcSelectedDesc').innerText = desc;
+    }
+
+    function triggerCoreAction() {
+      playClickSound(1300);
+      executeArcAction();
+    }
+
+    function executeArcAction() {
+      if (currentArcSelectedAction.phone) {
+        triggerCall(currentArcSelectedAction.phone, currentArcSelectedAction.name);
+      } else if (currentArcSelectedAction.id === 'dir_switches' || currentArcSelectedAction.id === 'dir_fans' || currentArcSelectedAction.id === 'dir_windows') {
+        speakText('Safety directive: ' + currentArcSelectedAction.desc);
+        alert('AeroSense Safety Directive: ' + currentArcSelectedAction.name + '\n' + currentArcSelectedAction.desc);
+      } else {
+        speakText(currentArcSelectedAction.name + ': ' + currentArcSelectedAction.desc);
+        alert('AeroSense Action: ' + currentArcSelectedAction.name + '\n' + currentArcSelectedAction.desc);
+      }
+    }
+
+    function setRotaryIndex(idx) {
+      currentRotaryIndex = idx;
+      playClickSound(800 + idx * 70);
+      updateRotaryDialUI();
+    }
+
+    function stepRotary(delta) {
+      currentRotaryIndex = (currentRotaryIndex + delta + ROTARY_ACTIONS.length) % ROTARY_ACTIONS.length;
+      playClickSound(800 + currentRotaryIndex * 70);
+      updateRotaryDialUI();
+    }
+
+    function updateRotaryDialUI() {
+      const act = ROTARY_ACTIONS[currentRotaryIndex];
+      // Rotate the knob
+      const knob = document.getElementById('rotaryKnob');
+      if (knob) {
+        knob.style.transform = `rotate(${act.angle}deg)`;
+      }
+      // Counter-rotate the inner text so it stays upright!
+      const centerInner = document.querySelector('.rotary-knob-inner');
+      if (centerInner) {
+        centerInner.style.transform = `rotate(${-act.angle}deg)`;
+      }
+      // Update text
+      document.getElementById('rotaryCenterTitle').innerText = act.name;
+      document.getElementById('rotaryCenterSub').innerText = act.sub;
+
+      // Update active orbital node buttons
+      for (let i = 0; i < 6; i++) {
+        const node = document.getElementById('rnode' + i);
+        if (node) {
+          node.classList.toggle('active', i === currentRotaryIndex);
+        }
+      }
+    }
+
+    function executeRotaryAction() {
+      const act = ROTARY_ACTIONS[currentRotaryIndex];
+      playClickSound(1250);
+      if (act.phone) {
+        triggerCall(act.phone, act.name);
+      } else if (act.name === 'Mute Siren') {
+        snoozeAlarm();
+        alert('AeroSense: Audible siren muted for 2 minutes.');
+      } else if (act.name === 'Check-In') {
+        checkInSelf();
+        alert('AeroSense: Successfully checked in safe outside.');
+      }
+    }
+
+    // Initial render on boot
+    window.addEventListener('DOMContentLoaded', () => {
+      renderOccupantRoster();
+    });
+    // In case already loaded
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      renderOccupantRoster();
+    }
+  </script>
+</body>
+</html>
