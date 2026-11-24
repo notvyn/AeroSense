@@ -46,7 +46,7 @@ export default function SettingsModal({
 
   const fs = (size) => Math.round(size * textScale);
 
-  const [currentIp, setCurrentIp] = useState(deviceIp || '192.168.43.100');
+  const [currentIp, setCurrentIp] = useState(deviceIp || '192.168.18.188');
 
   useEffect(() => {
     if (deviceIp) {
@@ -283,9 +283,9 @@ export default function SettingsModal({
             <Text style={[styles.inputLabel, { fontSize: fs(11) }]}>Quick Presets</Text>
             <View style={styles.presetsRow}>
               {[
+                { label: 'Current ESP32', ip: '192.168.18.188' },
                 { label: 'Hotspot', ip: '192.168.43.100' },
                 { label: 'Direct AP', ip: '192.168.4.1' },
-                { label: 'Home Wi-Fi', ip: '192.168.254.100' },
               ].map((preset) => (
                 <TouchableOpacity
                   key={preset.ip}

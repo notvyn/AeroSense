@@ -2241,9 +2241,10 @@
               </div>
             </div>
             <div style="display: flex; gap: 6px; margin-top: 2px;">
-              <input type="text" value="192.168.43.100" style="flex: 1; background-color: #1E293B; border: 1px solid #334155; color: #FFFFFF; padding: 7px 10px; border-radius: 8px; font-family: var(--font-mono); font-size: 12px;" />
-              <button style="background-color: #10B981; border: none; color: #FFFFFF; font-weight: 700; padding: 7px 12px; border-radius: 8px; font-size: 11.5px; cursor: pointer;">CONNECT</button>
+              <input type="text" id="hardwareIpInput" value="192.168.18.188" style="flex: 1; background-color: #1E293B; border: 1px solid #334155; color: #FFFFFF; padding: 7px 10px; border-radius: 8px; font-family: var(--font-mono); font-size: 12px;" />
+              <button onclick="connectToHardware()" style="background-color: #10B981; border: none; color: #FFFFFF; font-weight: 700; padding: 7px 12px; border-radius: 8px; font-size: 11.5px; cursor: pointer;">CONNECT</button>
             </div>
+            <div id="hardwareLinkStatus" style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Status: Standalone simulation (Click Connect to link ESP32)</div>
           </div>
         </div>
       </div>
@@ -3088,6 +3089,70 @@
         checkInSelf();
         alert('AeroSense: Successfully checked in safe outside.');
       }
+    }
+
+    let hardwarePollingInterval = null;
+    let isHardwareConnected = false;
+
+    async function connectToHardware(targetIp) {
+      const inputEl = document.getElementById('hardwareIpInput');
+      const ip = (targetIp || (inputEl ? inputEl.value : '') || '192.168.18.188').trim();
+      const statusEl = document.getElementById('hardwareLinkStatus');
+      if (statusEl) {
+        statusEl.innerText = 'Connecting to http://' + ip + '/telemetry...';
+        statusEl.style.color = '#F59E0B';
+      }
+
+      if (hardwarePollingInterval) {
+        clearInterval(hardwarePollingInterval);
+        hardwarePollingInterval = null;
+      }
+
+      async function pollHardware() {
+        if (isSimulating) return; // Demo simulation takes precedence
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1200);
+          const response = await fetch('http://' + ip + '/telemetry', {
+            signal: controller.signal,
+            mode: 'cors'
+          });
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const data = await response.json();
+            isHardwareConnected = true;
+            if (statusEl) {
+              statusEl.innerText = '● Connected: ' + (data.device_id || 'ESP32 Hub') + ' (' + ip + ')';
+              statusEl.style.color = '#10B981';
+            }
+
+            const mq2 = Number(data.sensors.flammable_ppm) || 0;
+            const mq8 = Number(data.sensors.h2_ppm) || 0;
+            const mq7 = Number(data.sensors.co_ppm) || 0;
+            const level = Number(data.alert.level) || 0;
+            const gas = data.alert.gas || 'NORMAL';
+
+            const title = level === 2 ? 'CRITICAL HAZARD' : level === 1 ? 'ELEVATED GAS' : 'SYSTEM NORMAL';
+            const sub = level === 2 ? gas + ' SPIKE DETECTED' : level === 1 ? 'Advisory: ' + gas + ' rising' : 'Air composition within safe baseline';
+
+            updateUI(mq2, mq8, mq7, level, title, sub);
+          } else {
+            throw new Error('HTTP ' + response.status);
+          }
+        } catch (err) {
+          if (isHardwareConnected) {
+            isHardwareConnected = false;
+            if (statusEl) {
+              statusEl.innerText = '○ Disconnected - Retrying ' + ip + '...';
+              statusEl.style.color = '#EF4444';
+            }
+          }
+        }
+      }
+
+      await pollHardware();
+      hardwarePollingInterval = setInterval(pollHardware, 1500);
     }
 
     // Initial render on boot

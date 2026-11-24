@@ -7,7 +7,7 @@
 class TelemetryService {
   constructor() {
     this.listeners = [];
-    this.deviceIp = '192.168.43.100'; // Default Android hotspot DHCP allocation
+    this.deviceIp = '192.168.18.188'; // Assigned IP from local Wi-Fi router
     this.pollingInterval = null;
     this.isHardwareLinked = false;
     this.simInterval = null;
